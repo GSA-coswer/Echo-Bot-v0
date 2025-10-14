@@ -72,6 +72,23 @@ def list_menu():
         line_bot_api = MessagingApi(api_client)
         menus = line_bot_api.get_rich_menu_list().richmenus
         return jsonify([menu.rich_menu_id for menu in menus])
+    
+@app.route("/link-richmenu/<user_id>", methods=["GET"])
+def link_richmenu_to_user(user_id):
+    """強制綁定圖文選單給指定使用者"""
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+
+        # 取得目前 default rich menu ID
+        try:
+            rich_menu_id = line_bot_api.get_default_rich_menu_id().rich_menu_id
+        except:
+            return "No default rich menu found. Please create one first.", 400
+
+        # 強制綁定給使用者
+        line_bot_api.link_rich_menu_to_user(user_id, rich_menu_id)
+        return f"Linked rich menu {rich_menu_id} to user {user_id}"
+
 
 if __name__ == "__main__":
     app.run()
