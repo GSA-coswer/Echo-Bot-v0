@@ -124,16 +124,19 @@ def create_rich_menu_1():
             rich_menu_request=rich_menu_to_create
         ).rich_menu_id
 
-        with open('./public/richmenu-a.jpg', 'rb') as image:
+        with open('./static/richmenu-1.jpg', 'rb') as image:
             line_bot_blob_api.set_rich_menu_image(
                 rich_menu_id=rich_menu_id,
                 body=bytearray(image.read()),
-                _headers={'Content-Type': 'image/jpg'}
+                _headers={'Content-Type': 'image/jpeg'}
             )
 
         line_bot_api.set_default_rich_menu(rich_menu_id)
 
-create_rich_menu_1()
+@app.route("/create-richmenu", methods=["GET"])
+def create_menu():
+    create_rich_menu_1()
+    return "Rich menu created successfully!"
 
 if __name__ == "__main__":
     app.run()
