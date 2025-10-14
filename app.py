@@ -10,24 +10,26 @@ from linebot.v3.messaging import (
     Configuration,
     ApiClient,
     MessagingApi,
-    MessagingApiBlob,
-    RichMenuSize,
-    RichMenuRequest,
-    RichMenuArea,
-    RichMenuBounds,
-    MessageAction
+    ReplyMessageRequest,
+    TextMessage,
+    TemplateMessage,
+    ButtonsTemplate,
+    PostbackAction
+)
+from linebot.v3.webhooks import (
+    MessageEvent,
+    FollowEvent,
+    PostbackEvent,
+    TextMessageContent
 )
 
-import requests
-import json
 import os
 
 app = Flask(__name__)
 
+configuration = Configuration(access_token=os.getenv('CHANNEL_ACCESS_TOKEN'))
+line_handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 
-CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
-configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
-line_handler = WebhookHandler(channel_secret=os.getenv("CHANNEL_SECRET"))
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -47,203 +49,39 @@ def callback():
 
     return 'OK'
 
-def create_rich_menu_1():
+
+# 加入好友事件
+@line_handler.add(FollowEvent)
+def handle_follow(event):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
-        line_bot_blob_api = MessagingApiBlob(api_client)
-
-        areas = [
-            RichMenuArea(
-                bounds=RichMenuBounds(
-                    x=0,
-                    y=0,
-                    width=833,
-                    height=843
-                ),
-                action=MessageAction(text='A')
-            ),
-            RichMenuArea(
-                bounds=RichMenuBounds(
-                    x=834,
-                    y=0,
-                    width=833,
-                    height=843
-                ),
-                action=MessageAction(text='B')
-            ),
-            RichMenuArea(
-                bounds=RichMenuBounds(
-                    x=1663,
-                    y=0,
-                    width=834,
-                    height=843
-                ),
-                action=MessageAction(text='C')
-            ),
-            RichMenuArea(
-                bounds=RichMenuBounds(
-                    x=0,
-                    y=843,
-                    width=833,
-                    height=843
-                ),
-                action=MessageAction(text='D')
-            ),
-            RichMenuArea(
-                bounds=RichMenuBounds(
-                    x=834,
-                    y=843,
-                    width=833,
-                    height=843
-                ),
-                action=MessageAction(text='E')
-            ),
-            RichMenuArea(
-                bounds=RichMenuBounds(
-                    x=1662,
-                    y=843,
-                    width=834,
-                    height=843
-                ),
-                action=MessageAction(text='F')
+        line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text="哈嘍同學！我終於等到你啦 🎉\n\n你🫵🏼\n快畢業了吧？\n還是你假裝是畢業生？\n或是你準備當「岩壁戰士」了☹️\n不管怎樣，都歡迎加入我們❤️‍🔥\n\n🫵🏼跟你正式介紹一下：\n我們是「畢業學生聯誼會」(畢聯會)\n\n✨我們負責：\n1️⃣ 辦理畢業生的各種活動\n（畢業舞會、畢業典禮…等等）\n2️⃣ 『訂購學位服』相關事項\n3️⃣ 協助解答畢業生的疑問\n\n💡小彩蛋提示：\n偶爾也會丟點小梗、搞笑互動\n讓你笑著迎接畢業 🎊\n\n有任何問題都可以隨時問我們！\n記得準時 follow 最新資訊\n各式活動、精彩回憶都別錯過啦 💖")]
             )
-        ]
-
-        rich_menu_to_create = RichMenuRequest(
-            size=RichMenuSize(
-                width=2500,
-                height=1686,
-            ),
-            selected=True,
-            name="圖文選單1",
-            chat_bar_text="查看更多資訊",
-            areas=areas
         )
 
-        rich_menu_id = line_bot_api.create_rich_menu(
-            rich_menu_request=rich_menu_to_create
-        ).rich_menu_id
-
-        with open('./public/richmenu-a.png', 'rb') as image:
-            line_bot_blob_api.set_rich_menu_image(
-                rich_menu_id=rich_menu_id,
-                body=bytearray(image.read()),
-                _headers={'Content-Type': 'image/png'}
+# 訊息事件
+@line_handler.add(MessageEvent, message=TextMessageContent)
+def message_text(event):
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        user_message = event.message.text
+        # Reply message
+        if "制服" in user_message:
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text ='你🫵🏼\n就準備穿著\n「制服」or「學位服」\n來學校吧😍\n我會恨帥潮還會恨美潮的🤧\n\n制服日就在：\n📆活動日期：9/24(三)\n⏰活動時間：9:00～16:00\n📍活動地點：北科大/一大川堂\n\n記得穿上\n高中職制服或大學學位服\n來拍照並留下專屬回憶 📸\n🎊 當天還有擺攤小驚喜，別錯過！')]
+                )
             )
 
-        line_bot_api.set_default_rich_menu(rich_menu_id)
+@line_handler.add(PostbackEvent)
+def handle_postback(event):
+    if event.postback.data == 'postback':
+        print('Postback event is triggered')
 
-
-# def create_rich_menu_2():
-#     with ApiClient(configuration) as api_client:
-#         line_bot_api = MessagingApi(api_client)
-#         line_bot_blob_api = MessagingApiBlob(api_client)
-
-#         # Create rich menu
-#         headers = {
-#             'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
-#             'Content-Type': 'application/json'
-#         }
-#         body = {
-#             "size": {
-#                 "width": 2500,
-#                 "height": 1686
-#             },
-#             "selected": True,
-#             "name": "圖文選單 1",
-#             "chatBarText": "查看更多資訊",
-#             "areas": [
-#                 {
-#                     "bounds": {
-#                         "x": 0,
-#                         "y": 0,
-#                         "width": 833,
-#                         "height": 843
-#                     },
-#                     "action": {
-#                         "type": "message",
-#                         "text": "A"
-#                     }
-#                 },
-#                 {
-#                     "bounds": {
-#                         "x": 834,
-#                         "y": 0,
-#                         "width": 833,
-#                         "height": 843
-#                     },
-#                     "action": {
-#                         "type": "message",
-#                         "text": "B"
-#                     }
-#                 },
-#                 {
-#                     "bounds": {
-#                         "x": 1663,
-#                         "y": 0,
-#                         "width": 834,
-#                         "height": 843
-#                     },
-#                     "action": {
-#                         "type": "message",
-#                         "text": "C"
-#                     }
-#                 },
-#                 {
-#                     "bounds": {
-#                         "x": 0,
-#                         "y": 843,
-#                         "width": 833,
-#                         "height": 843
-#                     },
-#                     "action": {
-#                         "type": "message",
-#                         "text": "D"
-#                     }
-#                 },
-#                 {
-#                     "bounds": {
-#                         "x": 834,
-#                         "y": 843,
-#                         "width": 833,
-#                         "height": 843
-#                     },
-#                     "action": {
-#                         "type": "message",
-#                         "text": "E"
-#                     }
-#                 },
-#                 {
-#                     "bounds": {
-#                         "x": 1662,
-#                         "y": 843,
-#                         "width": 838,
-#                         "height": 843
-#                     },
-#                     "action": {
-#                         "type": "message",
-#                         "text": "F"
-#                     }
-#                 }
-#             ]
-#         }
-
-#         response = requests.post('https://api.line.me/v2/bot/richmenu', headers=headers, data=json.dumps(body).encode('utf-8'))
-#         response = response.json()
-#         print(response)
-#         rich_menu_id = response["richMenuId"]
-        
-#         # Upload rich menu image
-#         with open('static/richmenu-1.jpg', 'rb') as image:
-#             line_bot_blob_api.set_rich_menu_image(
-#                 rich_menu_id=rich_menu_id,
-#                 body=bytearray(image.read()),
-#                 _headers={'Content-Type': 'image/jpeg'}
-#             )
-
-#         line_bot_api.set_default_rich_menu(rich_menu_id)
-
-create_rich_menu_1()
 
 if __name__ == "__main__":
     app.run()
